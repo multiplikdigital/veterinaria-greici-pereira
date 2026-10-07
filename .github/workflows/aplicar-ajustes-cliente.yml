@@ -1,0 +1,45 @@
+name: Aplicar ajustes cliente Refugio Vet
+on:
+  push:
+    paths:
+      - '.github/workflows/aplicar-ajustes-cliente.yml'
+permissions:
+  contents: write
+jobs:
+  ajustar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar ajustes no site
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          # Acrescenta acompanhamento gestacional aos servicos, sem duplicar.
+          if 'Acompanhamento gestacional' not in s:
+              anchor='<span class="care-tag">Atestado para viagem</span>'
+              s=s.replace(anchor, anchor+'<span class="care-tag">Acompanhamento gestacional</span>')
+          # Reforca cadeia de frio da vacinacao.
+          old='Vacinação realizada no conforto de casa, com avaliação e orientação individualizada.'
+          new='Vacinação realizada no conforto de casa, com avaliação e orientação individualizada. As vacinas são sempre armazenadas e transportadas na temperatura adequada, entre 2 °C e 8 °C, garantindo segurança e qualidade para o pet.'
+          s=s.replace(old,new)
+          # Troca o logo pela nova versao hospedada no repositorio.
+          import re
+          s=re.sub(r'<span class="brand-logo"><img src="[^"]+" alt="Refúgio Vet — Atendimento veterinário domiciliar"></span>', '<span class="brand-logo"><img src="assets/refugio-vet-logo-novo.webp" alt="Refúgio Vet — Atendimento veterinário domiciliar"></span>', s)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Baixar novo logo aprovado
+        run: |
+          python - <<'PY'
+          import urllib.request
+          url='https://raw.githubusercontent.com/multiplikdigital/veterinaria-greici-pereira/logo-cliente-temp/refugio-vet-logo-novo.webp'
+          urllib.request.urlretrieve(url,'assets/refugio-vet-logo-novo.webp')
+          PY
+      - name: Commitar alteracoes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html assets/refugio-vet-logo-novo.webp
+          git commit -m 'Aplica ajustes finais solicitados pela cliente' || exit 0
+          git push
