@@ -1,0 +1,32 @@
+name: Aplicar logo oficial Refugio Vet
+on:
+  push:
+    paths:
+      - '.github/workflows/aplicar-logo-oficial.yml'
+permissions:
+  contents: write
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Atualizar logo no HTML
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'(<span class="brand-logo"><img src=")[^"]+(" alt="Refúgio Vet — Atendimento veterinário domiciliar"></span>)', r'\1assets/refugio-vet-logo-oficial.svg\2', s)
+          if 'logo-oficial-0710' not in s:
+              css='\n/* logo-oficial-0710 */\n.brand-logo{background:transparent!important;overflow:visible!important}\n.brand-logo img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:left center!important;transform:none!important;filter:none!important}\nfooter .brand-logo img{object-position:left center!important}\n'
+              s=s.replace('</style>',css+'</style>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commitar
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Aplica nova logo oficial no site Refugio Vet' || exit 0
+          git push
